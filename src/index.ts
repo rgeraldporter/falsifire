@@ -1,26 +1,16 @@
-import { Monad, TestMonad, TestCase, MapFunction } from './falsifire-types';
+import {
+    Monad,
+    TestMonad,
+    TestCase,
+    AssertionFunction,
+    AsyncTestDone
+} from './falsifire-types';
 import { Truth, Decision } from 'booltable';
 import { strict as assert } from 'assert';
 
 const FF_TAG = `[🔥Falsifire🔥] `;
 
-const PromiseEach = (arr: string[] | any, fn: Function): Promise<any> => {
-    const results: any[] = [];
-    const newArr: any[] = Array.isArray(arr) ? arr : [arr];
-    return newArr
-        .reduce(
-            (prev, curr, i): Promise<any> =>
-                prev.then(() =>
-                    fn(curr, i, arr.length).then((result: any[]) => {
-                        results[i] = result;
-                    })
-                ),
-            Promise.resolve()
-        )
-        .then(() => results);
-};
-
-const anyToString = (x: any) =>
+const anyToString = <T>(x: T): string =>
     Decision.of([
         [typeof x === 'object', JSON.stringify(x)],
         [typeof x === 'string', `"${x}"`],
@@ -30,91 +20,87 @@ const anyToString = (x: any) =>
         .run()
         .join();
 
-type AssertionFunction = Function;
-
 const asserting = (af: AssertionFunction, t: TestCase): void => {
     const { failing, passing, fn } = t;
 
-    failing.map(val => {
+    // run the Test Case function as a param to the AssertionFunction
+    // verify it throws an error, if not, throw a new error to bubble up to a test failure
+    failing.map(<T>(val: T[]) => {
         assert.throws(
             () => af(fn(...val)),
-            (err: any) => (err instanceof Error ? false : true),
+            <T>(err: Error | T) => (err instanceof Error ? false : true),
             `${FF_TAG}Value ${anyToString(
                 val
             )} in failing set passed given assertion. Assertion not sufficiently falsifiable.`
         );
     });
 
-    passing.map((val: any) => {
+    // only need to simpl run these tests -- error will bubble up as failure on its own
+    passing.map(<T>(val: T[]) => {
         af(t.fn(...val));
     });
 };
 
-const assertingAsync = (af: AssertionFunction, t: TestCase): Promise<any> => {
-    const { failing, passing, fn } = t;
+const assertingAsync = (af: AssertionFunction, t: TestCase): Promise<void> => {
+    const { failing, passing, fn, done } = t;
 
-    const failingMap = (val: any) => {
-        assert.rejects(
-            () =>
-                fn(...val)
-                    .then((val: any) => {
-                        console.log('val', val);
-                        return val;
-                    })
-                    .then((vals: any) => af(vals))
-                    .catch((err: any) => console.error('err', err)),
-            (err: any) => (err instanceof Error ? false : false),
+    // run the TestCase function with each provided "failing" value
+    // then for each returned value, pass as parameter to AssertionFunction
+    // verify it throws an error, if not, throw a new error to bubble up to a test failure
+    const failingMap = async <T>(val: T[]) =>
+        await assert.rejects(
+            async () => fn(...val).then(af),
+            <T>(err: Error | T) => (err instanceof Error ? false : true),
             `${FF_TAG}Value ${anyToString(
                 val
             )} in failing set passed given assertion. Assertion not sufficiently falsifiable.`
         );
-    };
 
-    const failingPromised = PromiseEach(failing, failingMap);
-    const passingPromised = PromiseEach(passing, (val: any) => {
-        fn(...val).then(af);
-    });
+    // only need to simpl run these tests -- error will bubble up as failure on its own
+    const passingMap = async <T>(val: T[]) => fn(...val).then(af);
 
-    return Promise.all([failingPromised, passingPromised]);
-
-    /*
-    const passingPassed = Truth.of(passed).and();
-    const failingFailed = Truth.of(failed).nor();
-    return Truth.of([passingPassed, failingFailed]).and();
-*/
+    return Promise.all(failing.map(failingMap))
+        .then(() => Promise.all(passing.map(passingMap)))
+        .then(() => done());
 };
 
-const Test = (x: TestCase): TestMonad => ({
+const Test = <T>(x: TestCase): TestMonad => ({
     map: (f: Function): TestMonad => Test(f(x)),
-    chain: (f: Function): any => f(x),
-    join: (): any => x,
+    chain: (f: Function): T => f(x),
+    join: (): TestCase => x,
     inspect: (): string => `Test(${x})`,
     ap: (y: Monad): Monad => y.map(x),
-    within: (n: number): TestMonad => Test({ ...x, async: n }),
+    async: (done: AsyncTestDone): TestMonad =>
+        Test({ ...x, async: true, done }),
     describe: (description: string): TestMonad => Test({ ...x, description }),
-    passing: (passing: any): TestMonad => Test({ ...x, passing }),
-    failing: (failing: any): TestMonad => Test({ ...x, failing }),
-    asserting: (f: AssertionFunction): void | Promise<any> =>
+    passing: <T>(passing: T[]): TestMonad => Test({ ...x, passing }),
+    failing: <T>(failing: T[]): TestMonad => Test({ ...x, failing }),
+    asserting: (f: AssertionFunction): void | Promise<void> =>
         x.async ? assertingAsync(f, x) : asserting(f, x) // todo: iterate passing, iterate failing, aggregate XOR of passing/failing
 });
 
-const TestOf = (x: any): TestMonad =>
+const identityFn = <T>(arg: T): Function =>
+    typeof arg === 'function' ? arg : () => {};
+
+const TestOf = (x: TestCase | Function): TestMonad =>
     Truth.of([
         'fn' in x,
         'description' in x,
         'passing' in x,
         'failing' in x,
-        'async' in x
+        'async' in x,
+        'done' in x
     ]).forkAnd(
         () =>
             Test({
-                fn: x,
+                fn: identityFn(x),
                 description: '<No description>',
                 passing: [],
                 failing: [],
-                async: false
+                async: false,
+                done: () => {}
             }),
-        () => Test(x)
+        () => Test(x as TestCase)
     );
 
 const exportTest = {
