@@ -1,0 +1,48 @@
+{
+  "name": "falsifire",
+  "version": "0.1.0",
+  "description": "Falsifiable unit tests in Javascript",
+  "main": "build/src/index.js",
+  "scripts": {
+    "test": "jest",
+    "check": "gts check",
+    "clean": "gts clean",
+    "compile": "tsc -p .",
+    "fix": "gts fix",
+    "prepare": "npm run compile",
+    "pretest": "npm run compile",
+    "posttestnull": "npm run check"
+  },
+  "author": "Robert Gerald Porter <rob@weeverapps.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "23.3.13",
+    "gts": "^0.9.0",
+    "jest": "23.6.0",
+    "tslint": "5.12.1",
+    "tslint-config-airbnb": "5.11.1",
+    "typescript": "~3.1.0"
+  },
+  "dependencies": {
+    "@types/node": "10.12.18",
+    "booltable": "0.5.20"
+  },
+  "keywords": [
+    "monad",
+    "unit testing",
+    "testing",
+    "falsifiability"
+  ],
+  "repository": {
+    "url": "git@github.com:rgeraldporter/falsifire.git",
+    "type": "git"
+  },
+  "files": [
+    "build/src/index.d.ts",
+    "build/src/index.js",
+    "build/src/index.js.map",
+    "build/src/falsifire-types.d.ts",
+    "build/src/falsifire-types.js",
+    "build/src/falsifire-types.js.map"
+  ]
+}
