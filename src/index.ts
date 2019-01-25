@@ -41,7 +41,10 @@ const asserting = (af: AssertionFunction, t: TestCase): void => {
     });
 };
 
-const assertingAsync = (af: AssertionFunction, t: TestCase): Promise<void> => {
+const assertingAsync = async (
+    af: AssertionFunction,
+    t: TestCase
+): Promise<void> => {
     const { failing, passing, fn, done } = t;
 
     // run the TestCase function with each provided "failing" value
@@ -64,6 +67,65 @@ const assertingAsync = (af: AssertionFunction, t: TestCase): Promise<void> => {
         .then(() => done());
 };
 
+const expectingAsync = async (
+    af: AssertionFunction,
+    t: TestCase
+): Promise<void> => {
+    const { failing, passing, fn, done } = t;
+
+    // run the TestCase function with each provided "failing" value
+    // then for each returned value, pass as parameter to AssertionFunction
+    // verify it throws an error, if not, throw a new error to bubble up to a test failure
+    const failingMap = async <T>(val: T[]) =>
+        await fn(...val)
+            .then(af)
+            .then(() => {
+                throw new Error(
+                    `${FF_TAG}Value ${anyToString(
+                        val
+                    )} in failing set passed given assertion. Assertion not sufficiently falsifiable.`
+                );
+            })
+            .catch((err: { message: string }) => {
+                // if this is our own error, kick it up!
+                if (err.message.startsWith(FF_TAG)) {
+                    throw new Error(err.message);
+                }
+            });
+
+    // only need to simpl run these tests -- error will bubble up as failure on its own
+    const passingMap = async <T>(val: T[]) => fn(...val).then(af);
+
+    return Promise.all(failing.map(failingMap))
+        .then(() => Promise.all(passing.map(passingMap)))
+        .then(() => done())
+        .catch(<T>(err: T) => done(err));
+};
+
+const expecting = (af: AssertionFunction, t: TestCase): void => {
+    const { failing, passing, fn } = t;
+
+    // run the Test Case function as a param to the AssertionFunction
+    // verify it throws an error, if not, throw a new error to bubble up to a test failure
+    failing.map(<T>(val: T[]) => {
+        try {
+            af(fn(...val));
+            throw new Error(
+                `${FF_TAG}Value ${anyToString(
+                    val
+                )} in failing set passed given assertion. Assertion not sufficiently falsifiable.`
+            );
+        } catch (err) {
+            if (err.message.startsWith(FF_TAG)) throw new Error(err);
+        }
+    });
+
+    // only need to simpl run these tests -- error will bubble up as failure on its own
+    passing.map(<T>(val: T[]) => {
+        af(t.fn(...val));
+    });
+};
+
 const Test = <T>(x: TestCase): TestMonad => ({
     map: (f: Function): TestMonad => Test(f(x)),
     chain: (f: Function): T => f(x),
@@ -75,8 +137,10 @@ const Test = <T>(x: TestCase): TestMonad => ({
     describe: (description: string): TestMonad => Test({ ...x, description }),
     passing: <T>(passing: T[]): TestMonad => Test({ ...x, passing }),
     failing: <T>(failing: T[]): TestMonad => Test({ ...x, failing }),
+    expecting: (f: AssertionFunction): void | Promise<void> =>
+        x.async ? expectingAsync(f, x) : expecting(f, x),
     asserting: (f: AssertionFunction): void | Promise<void> =>
-        x.async ? assertingAsync(f, x) : asserting(f, x) // todo: iterate passing, iterate failing, aggregate XOR of passing/failing
+        x.async ? assertingAsync(f, x) : asserting(f, x)
 });
 
 const identityFn = <T>(arg: T): Function =>
