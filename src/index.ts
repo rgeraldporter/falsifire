@@ -130,6 +130,7 @@ const Test = <T>(x: TestCase): TestMonad => ({
     map: (f: Function): TestMonad => Test(f(x)),
     chain: (f: Function): T => f(x),
     join: (): TestCase => x,
+    emit: (): TestCase => x,
     inspect: (): string => `Test(${x})`,
     ap: (y: Monad): Monad => y.map(x),
     async: (done: AsyncTestDone): TestMonad =>

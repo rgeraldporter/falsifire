@@ -14,6 +14,7 @@ export interface Monad {
     map: Function;
     chain: Function;
     join: Function;
+    emit: Function;
     inspect(): string;
     ap: Function;
 }

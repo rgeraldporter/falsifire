@@ -2,6 +2,7 @@ import { Test } from './index';
 import { strict as assert } from 'assert';
 
 // @todo: import known-good version of falsifire, to verify its own falsifications *galaxybrain.gif*
+// @todo: Monad compliance tests
 
 const add = (x: number, y: number): number => x + y;
 const concat = (x: number[], y: number[]): number[] => x.concat(y);
