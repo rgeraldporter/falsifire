@@ -120,7 +120,7 @@ describe('An asyncronous test', () => {
                         .describe('an async test')
                         .passing([[3, 4], [4, 3], [2, 5], [1, 6], [7, 0]])
                         .failing([[1, 4], [2, 2], [2, 5], [0, 0], [-2, 8]])
-                        .async(() => {})
+                        .async(() => { })
                         .asserting(<T>(val: T) => assert.deepEqual(val, 7)),
                 (err: Error | null) => (err instanceof Error ? false : true),
                 `Falsifire should have thrown an error and did not`
@@ -221,17 +221,22 @@ describe('An asyncronous test in jest', () => {
             .expecting(<T>(val: T) => expect(val).toEqual(7)));
 
     it('should be able to check for falisification and fail when it finds non-falsifiable results', async done => {
+
+        const expectedFailure = "Error: [🔥Falsifire🔥] Value [2,5] in failing set passed given assertion. Assertion not sufficiently falsifiable.";
+
         await new Promise((resolve, reject) => {
             Test.of(addLater)
                 .describe('an async test')
                 .passing([[3, 4], [4, 3], [2, 5], [1, 6], [7, 0]])
                 .failing([[1, 4], [2, 2], [2, 5], [0, 0], [-2, 8]])
-                .async(<T>(err: T) =>
-                    err
-                        ? done()
-                        : done.fail(
-                              'Falsifire should have thrown an error and did not'
-                          )
+                .async(<T>(err: T | string) =>
+
+                    // need fuzzy equals due to unicode?
+                    err && err != expectedFailure
+                        ? done.fail(
+                            `Falsifire should have thrown only one specific error. Instead, found: ${err}`
+                        )
+                        : done()
                 )
                 .expecting(<T>(val: T) => expect(val).toEqual(7));
         });

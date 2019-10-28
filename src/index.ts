@@ -80,6 +80,7 @@ const expectingAsync = async (
         await fn(...val)
             .then(af)
             .then(() => {
+                // since it didn't throw an error, this is not falsifiable, we'll throw our own error
                 throw new Error(
                     `${FF_TAG}Value ${anyToString(
                         val
@@ -87,13 +88,16 @@ const expectingAsync = async (
                 );
             })
             .catch((err: { message: string }) => {
-                // if this is our own error, kick it up!
+                // if this is our own error, bubble this up to the done function!
                 if (err.message.startsWith(FF_TAG)) {
-                    throw new Error(err.message);
+                    done(new Error(err.message));
+                } else {
+                    // if not our own error this is expected
+                    done();
                 }
             });
 
-    // only need to simpl run these tests -- error will bubble up as failure on its own
+    // only need to simply run these tests -- error will bubble up as failure on its own
     const passingMap = async <T>(val: T[]) => fn(...val).then(af);
 
     return Promise.all(failing.map(failingMap))
@@ -120,7 +124,7 @@ const expecting = (af: AssertionFunction, t: TestCase): void => {
         }
     });
 
-    // only need to simpl run these tests -- error will bubble up as failure on its own
+    // only need to simply run these tests -- error will bubble up as failure on its own
     passing.map(<T>(val: T[]) => {
         af(t.fn(...val));
     });
