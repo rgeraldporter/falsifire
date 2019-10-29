@@ -20,6 +20,13 @@ const anyToString = <T>(x: T): string =>
         .run()
         .join();
 
+// @ts-ignore
+const isTestError = (err: any) =>
+    // Mocha error type
+    err.name === 'AssertionError [ERR_ASSERTION]'
+        ? false // need reverse for Mocha -- @todo look into why this works?
+        : err instanceof Error;
+
 const asserting = (af: AssertionFunction, t: TestCase): void => {
     const { failing, passing, fn } = t;
 
@@ -28,7 +35,8 @@ const asserting = (af: AssertionFunction, t: TestCase): void => {
     failing.map(<T>(val: T[]) => {
         assert.throws(
             () => af(fn(...val)),
-            <T>(err: Error | T) => (err instanceof Error ? false : true),
+            // @ts-ignore
+            <T>(err: Error | T) => (isTestError(err) ? false : true),
             `${FF_TAG}Value ${anyToString(
                 val
             )} in failing set passed given assertion. Assertion not sufficiently falsifiable.`
@@ -53,7 +61,7 @@ const assertingAsync = async (
     const failingMap = async <T>(val: T[]) =>
         await assert.rejects(
             async () => fn(...val).then(af),
-            <T>(err: Error | T) => (err instanceof Error ? false : true),
+            <T>(err: Error | T) => (isTestError(err) ? false : true),
             `${FF_TAG}Value ${anyToString(
                 val
             )} in failing set passed given assertion. Assertion not sufficiently falsifiable.`
@@ -76,19 +84,30 @@ const expectingAsync = async (
     // run the TestCase function with each provided "failing" value
     // then for each returned value, pass as parameter to AssertionFunction
     // verify it throws an error, if not, throw a new error to bubble up to a test failure
-    const failingMap = async <T>(val: T[]) =>
-        await fn(...val)
-            .then(af)
-            .then(() => {
-                // since it didn't throw an error, this is not falsifiable, we'll throw our own error
-                throw new Error(
-                    `${FF_TAG}Value ${anyToString(
-                        val
-                    )} in failing set passed given assertion. Assertion not sufficiently falsifiable.`
-                );
-            }, () => {
-                // do nothing since we expect errors and errors are good here!
-            });
+    const failingMap = async <T>(val: T[]) => {
+        try {
+            return await fn(...val)
+                .then(af)
+                .then(() => {
+                    // since it didn't throw an error, this is not falsifiable, we'll throw our own error
+                    throw new Error(
+                        `${FF_TAG}Value ${anyToString(
+                            val
+                        )} in failing set passed given assertion. Assertion not sufficiently falsifiable.`
+                    );
+                    // @ts-ignore
+                }, () => {
+                    // do nothing since we expect errors and errors are good here!
+                });
+        } catch (err) {
+            // for Mocha
+            if (err.message.startsWith(FF_TAG)) {
+                throw new Error(err.message);
+            }
+            return await Promise.resolve();
+        }
+    };
+
 
     // only need to simply run these tests -- error will bubble up as failure on its own
     const passingMap = async <T>(val: T[]) => fn(...val).then(af);
@@ -99,12 +118,14 @@ const expectingAsync = async (
             typeof done === 'function'
                 ? done()
                 : Promise.resolve())
-        // @ts-ignore
-        .catch(<T>(err: T) =>
-            typeof done === 'function'
-                ? done(err)
-                : Promise.reject(err)
-        );
+        .catch((err: Error) => {
+
+            if (typeof done === 'function') {
+                done(err);
+            }
+
+            throw new Error(err.message);
+        });
 };
 
 const expecting = (af: AssertionFunction, t: TestCase): void => {
@@ -143,8 +164,8 @@ const Test = <T>(x: TestCase): TestMonad => ({
     emit: (): TestCase => x,
     inspect: (): string => `Test(${x})`,
     ap: (y: Monad): Monad => y.map(x),
-    async: (done: AsyncTestDone): TestMonad =>
-        Test({ ...x, async: true, done }),
+    async: (done?: AsyncTestDone): TestMonad =>
+        Test({ ...x, async: true, done: done ? done : () => { } }),
     describe: (description: string): TestMonad => Test({ ...x, description }),
     passing: <T>(passing: T[]): TestMonad => Test({ ...x, passing }),
     failing: <T>(failing: T[]): TestMonad => Test({ ...x, failing }),

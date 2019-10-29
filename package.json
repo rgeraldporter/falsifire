@@ -1,10 +1,11 @@
 {
   "name": "falsifire",
-  "version": "0.5.4",
+  "version": "0.6.0",
   "description": "Falsifiable unit tests in Javascript",
   "main": "build/src/index.js",
   "scripts": {
-    "test": "jest",
+    "jest": "npm run pretest && NODE_ENV=test jest \"build/.*\\.test\\.js\"",
+    "mocha": "npm run pretest && NODE_ENV=test mocha \"build/**/*.spec.js\"",
     "check": "gts check",
     "clean": "gts clean",
     "compile": "tsc -p .",
@@ -16,12 +17,18 @@
   "author": "Robert Gerald Porter <rob@weeverapps.com>",
   "license": "MIT",
   "devDependencies": {
+    "@types/chai": "4.2.4",
+    "@types/chai-spies": "1.0.1",
     "@types/jest": "23.3.13",
+    "@types/mocha": "5.2.7",
+    "chai": "4.2.0",
+    "chai-spies": "1.0.0",
     "gts": "^0.9.0",
-    "jest": "23.6.0",
+    "jest": "24.9.0",
+    "mocha": "6.2.2",
     "tslint": "5.12.1",
     "tslint-config-airbnb": "5.11.1",
-    "typescript": "~3.1.0"
+    "typescript": "3.6.4"
   },
   "dependencies": {
     "@types/node": "10.12.18",

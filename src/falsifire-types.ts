@@ -25,6 +25,6 @@ export interface TestMonad extends Monad {
     failing<T>(x: T[]): TestMonad;
     asserting(f: Function): any;
     expecting(f: Function): any;
-    async(f: Function): TestMonad;
+    async(f?: Function): TestMonad;
     run(): any;
 }
