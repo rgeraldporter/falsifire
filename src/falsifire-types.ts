@@ -23,8 +23,8 @@ export interface TestMonad extends Monad {
     describe(s: string): TestMonad;
     passing<T>(x: T[]): TestMonad;
     failing<T>(x: T[]): TestMonad;
-    asserting(f: Function): void | Promise<void>;
-    expecting(f: Function): void | Promise<void>;
+    asserting(f: Function): any;
+    expecting(f: Function): any;
     async(f: Function): TestMonad;
-    run(): void | Promise<void>;
+    run(): any;
 }

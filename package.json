@@ -1,6 +1,6 @@
 {
   "name": "falsifire",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Falsifiable unit tests in Javascript",
   "main": "build/src/index.js",
   "scripts": {

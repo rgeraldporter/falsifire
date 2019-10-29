@@ -70,7 +70,7 @@ const assertingAsync = async (
 const expectingAsync = async (
     af: AssertionFunction,
     t: TestCase
-): Promise<void> => {
+) => {
     const { failing, passing, fn, done } = t;
 
     // run the TestCase function with each provided "failing" value
@@ -87,7 +87,7 @@ const expectingAsync = async (
                     )} in failing set passed given assertion. Assertion not sufficiently falsifiable.`
                 );
             }, () => {
-                // do nothing since we expect errors and errors are good!
+                // do nothing since we expect errors and errors are good here!
             });
 
     // only need to simply run these tests -- error will bubble up as failure on its own
@@ -95,8 +95,16 @@ const expectingAsync = async (
 
     return Promise.all(failing.map(failingMap))
         .then(() => Promise.all(passing.map(passingMap)))
-        .then(() => done())
-        .catch(<T>(err: T) => done(err));
+        .then(() =>
+            typeof done === 'function'
+                ? done()
+                : Promise.resolve())
+        // @ts-ignore
+        .catch(<T>(err: T) =>
+            typeof done === 'function'
+                ? done(err)
+                : Promise.reject(err)
+        );
 };
 
 const expecting = (af: AssertionFunction, t: TestCase): void => {
@@ -140,11 +148,11 @@ const Test = <T>(x: TestCase): TestMonad => ({
     describe: (description: string): TestMonad => Test({ ...x, description }),
     passing: <T>(passing: T[]): TestMonad => Test({ ...x, passing }),
     failing: <T>(failing: T[]): TestMonad => Test({ ...x, failing }),
-    expecting: (f: AssertionFunction): void | Promise<void> =>
+    expecting: (f: AssertionFunction) =>
         x.async ? expectingAsync(f, x) : expecting(f, x),
-    asserting: (f: AssertionFunction): void | Promise<void> =>
+    asserting: (f: AssertionFunction) =>
         x.async ? assertingAsync(f, x) : asserting(f, x),
-    run: (): void | Promise<void> => runNoop(x)
+    run: () => runNoop(x)
 });
 
 const identityFn = <T>(arg: T): Function =>
