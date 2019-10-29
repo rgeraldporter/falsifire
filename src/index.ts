@@ -90,7 +90,8 @@ const expectingAsync = async (
             .catch((err: { message: string }) => {
                 // if this is our own error, bubble this up to the done function!
                 if (err.message.startsWith(FF_TAG)) {
-                    done(new Error(err.message));
+                    //done(new Error(err.message));
+                    Promise.reject(new Error(err.message));
                 }
                 // if not our own error this is expected
             });
