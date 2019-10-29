@@ -86,14 +86,8 @@ const expectingAsync = async (
                         val
                     )} in failing set passed given assertion. Assertion not sufficiently falsifiable.`
                 );
-            })
-            .catch((err: { message: string }) => {
-                // if this is our own error, bubble this up to the done function!
-                if (err.message.startsWith(FF_TAG)) {
-                    //done(new Error(err.message));
-                    Promise.reject(new Error(err.message));
-                }
-                // if not our own error this is expected
+            }, () => {
+                // do nothing since we expect errors and errors are good!
             });
 
     // only need to simply run these tests -- error will bubble up as failure on its own
