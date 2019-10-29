@@ -91,10 +91,8 @@ const expectingAsync = async (
                 // if this is our own error, bubble this up to the done function!
                 if (err.message.startsWith(FF_TAG)) {
                     done(new Error(err.message));
-                } else {
-                    // if not our own error this is expected
-                    done();
                 }
+                // if not our own error this is expected
             });
 
     // only need to simply run these tests -- error will bubble up as failure on its own
@@ -130,6 +128,11 @@ const expecting = (af: AssertionFunction, t: TestCase): void => {
     });
 };
 
+const runNoop = (t: TestCase): void | Promise<void> =>
+    t.async
+        ? expectingAsync(() => { }, t)
+        : expecting(() => { }, t);
+
 const Test = <T>(x: TestCase): TestMonad => ({
     map: (f: Function): TestMonad => Test(f(x)),
     chain: (f: Function): T => f(x),
@@ -145,11 +148,12 @@ const Test = <T>(x: TestCase): TestMonad => ({
     expecting: (f: AssertionFunction): void | Promise<void> =>
         x.async ? expectingAsync(f, x) : expecting(f, x),
     asserting: (f: AssertionFunction): void | Promise<void> =>
-        x.async ? assertingAsync(f, x) : asserting(f, x)
+        x.async ? assertingAsync(f, x) : asserting(f, x),
+    run: (): void | Promise<void> => runNoop(x)
 });
 
 const identityFn = <T>(arg: T): Function =>
-    typeof arg === 'function' ? arg : () => {};
+    typeof arg === 'function' ? arg : () => { };
 
 const TestOf = (x: TestCase | Function): TestMonad =>
     Truth.of([
@@ -167,7 +171,7 @@ const TestOf = (x: TestCase | Function): TestMonad =>
                 passing: [],
                 failing: [],
                 async: false,
-                done: () => {}
+                done: () => { }
             }),
         () => Test(x as TestCase)
     );

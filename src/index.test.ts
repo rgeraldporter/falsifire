@@ -228,11 +228,9 @@ describe('An asyncronous test in jest', () => {
             Test.of(addLater)
                 .describe('an async test')
                 .passing([[3, 4], [4, 3], [2, 5], [1, 6], [7, 0]])
-                .failing([[1, 4], [2, 2], [2, 5], [0, 0], [-2, 8]])
+                .failing([[1, 4], [2, 3], [3, 5], [1, 0], [-2, 8]])
                 .async(<T>(err: T | string) =>
-
-                    // need fuzzy equals due to unicode?
-                    err && err != expectedFailure
+                    err && err !== expectedFailure
                         ? done.fail(
                             `Falsifire should have thrown only one specific error. Instead, found: ${err}`
                         )

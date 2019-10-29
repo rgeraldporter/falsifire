@@ -26,4 +26,5 @@ export interface TestMonad extends Monad {
     asserting(f: Function): void | Promise<void>;
     expecting(f: Function): void | Promise<void>;
     async(f: Function): TestMonad;
+    run(): void | Promise<void>;
 }
