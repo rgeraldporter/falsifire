@@ -114,9 +114,9 @@ const expectingAsync = async (
                         )} in failing set passed given assertion. Assertion not sufficiently falsifiable.`
                     );
                     // @ts-ignore
-                }, () => {
+                }, (err) => {
                     afterEachFn();
-                    console.log('DEBUG: in Promise "catch" (asserted)');
+                    console.log('DEBUG: in Promise "catch" (asserted)', err);
                     // do nothing since we expect errors and errors are good here!
                 });
         } catch (err) {
