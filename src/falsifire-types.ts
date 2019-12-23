@@ -8,6 +8,8 @@ export interface TestCase {
     failing: any[];
     async: boolean;
     done: AsyncTestDone;
+    beforeEachFn: Function;
+    afterEachFn: Function;
 }
 
 export interface Monad {
@@ -27,4 +29,6 @@ export interface TestMonad extends Monad {
     expecting(f: Function): any;
     async(f?: Function): TestMonad;
     run(): any;
+    beforeEach(f: Function): any;
+    afterEach(f: Function): any;
 }

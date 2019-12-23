@@ -47,16 +47,32 @@ describe('A syncronous test', () => {
     });
 
     it('should be able to check for falisification and fail when it finds non-falsifiable results', () => {
+        let before = 0;
+        let after = 0;
+
+        const incBefore = () => {
+            before = before + 1;
+        };
+
+        const incAfter = () => {
+            after = after + 1;
+        };
+
         assert.throws(
             () =>
                 Test.of(add)
                     .describe('another test')
+                    .beforeEach(incBefore)
+                    .afterEach(incAfter)
                     .passing([[3, 4], [4, 3], [2, 5], [1, 6], [7, 0]])
                     .failing([[1, 4], [2, 2], [2, 5], [0, 0], [-2, 8]])
                     .asserting((val: number) => assert.deepEqual(val, 7)),
             (err: Error | null) => (err instanceof Error ? false : true),
             `Falsifire should have thrown an error and did not`
         );
+
+        expect(before).toEqual(3);
+        expect(after).toEqual(2);
 
         assert.throws(
             () =>
@@ -131,11 +147,27 @@ describe('An asyncronous test', () => {
 
 describe('A syncronous test in jest', () => {
     it('should be able to check for falisification and pass when it works', () => {
+        let before = 0;
+        let after = 0;
+
+        const incBefore = () => {
+            before = before + 1;
+        };
+
+        const incAfter = () => {
+            after = after + 1;
+        };
+
         Test.of(add)
             .describe('a test')
+            .beforeEach(incBefore)
+            .afterEach(incAfter)
             .passing([[3, 4], [4, 3], [2, 5], [1, 6], [7, 0]])
             .failing([[1, 4], [2, 2], [2, 3], [0, 0], [-2, 8]])
             .expecting((val: number) => expect(val).toEqual(7));
+
+        expect(before).toEqual(10);
+        expect(after).toEqual(10);
 
         Test.of(concat)
             .describe('an array test')
@@ -212,13 +244,33 @@ describe('A syncronous test in jest', () => {
 });
 
 describe('An asyncronous test in jest', () => {
-    it('should be able to check for falisification and pass when it works', async done =>
+    it('should be able to check for falisification and pass when it works', async done => {
+        let before = 0;
+        let after = 0;
+
+        const incBefore = () => {
+            before = before + 1;
+        };
+
+        const incAfter = () => {
+            after = after + 1;
+        };
+
         await Test.of(addLater)
             .describe('an async test')
+            .beforeEach(incBefore)
+            .afterEach(incAfter)
             .passing([[3, 4], [4, 3], [2, 5], [1, 6], [7, 0]])
             .failing([[1, 4], [2, 2], [3, 5], [0, 0], [-2, 8]])
-            .async(done)
-            .expecting(<T>(val: T) => expect(val).toEqual(7)));
+            .async()
+            .expecting(<T>(val: T) => expect(val).toEqual(7));
+
+        expect(before).toEqual(10);
+        expect(after).toEqual(10);
+
+        done();
+    });
+
 
     it('should be able to check for falisification and fail when it finds non-falsifiable results', async done => {
 

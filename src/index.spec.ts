@@ -224,7 +224,7 @@ describe('Using Mocha', () => {
                 .passing([[3, 4], [4, 3], [2, 5], [1, 6], [7, 0]])
                 .failing([[1, 4], [2, 2], [3, 5], [0, 0], [-2, 8]])
                 .async()
-                .expecting((val: {should: { equal: Function}}) => val.should.equal(7)));
+                .expecting((val: { should: { equal: Function } }) => val.should.equal(7)));
 
         it('should be able to check for falisification and fail when it finds non-falsifiable results', async () => {
 
@@ -242,7 +242,7 @@ describe('Using Mocha', () => {
                             )
                             : resolve()
                     )
-                    .expecting((val: {should: { equal: Function}}) => val.should.equal(7));
+                    .expecting((val: { should: { equal: Function } }) => val.should.equal(7));
             });
         });
     });
@@ -270,12 +270,28 @@ describe('Using Mocha', () => {
                 return Promise.resolve();
             };
 
-            return Test.of(testFn)
+            let before = 0;
+            let after = 0;
+
+            const incBefore = () => {
+                before = before + 1;
+            };
+
+            const incAfter = () => {
+                after = after + 1;
+            };
+
+            await Test.of(testFn)
                 .describe('an async test')
+                .beforeEach(incBefore)
+                .afterEach(incAfter)
                 .passing([[11], [11]])
                 .failing([[10], [9]])
                 .async()
                 .run();
+
+            before.should.equal(4);
+            after.should.equal(4);
         });
     });
 });
