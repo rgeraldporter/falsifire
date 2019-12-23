@@ -90,6 +90,7 @@ const expectingAsync = async (
                 .then(af)
                 .then(() => {
                     // since it didn't throw an error, this is not falsifiable, we'll throw our own error
+                    console.log('DEBUG: in Promise "then" (failed to assert)');
                     throw new Error(
                         `${FF_TAG}Value ${anyToString(
                             val
@@ -97,11 +98,13 @@ const expectingAsync = async (
                     );
                     // @ts-ignore
                 }, () => {
+                    console.log('DEBUG: in Promise "catch" (asserted)');
                     // do nothing since we expect errors and errors are good here!
                 });
         } catch (err) {
             // for Mocha
             if (err.message.startsWith(FF_TAG)) {
+                console.log('DEBUG: in catch for Mocha (failed to assert)');
                 throw new Error(err.message);
             }
             return await Promise.resolve();
